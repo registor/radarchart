@@ -12,6 +12,8 @@
 %  6. 根据"https://en.wikipedia.org/wiki/Radar_chart"的说明将原
 %     tkz-kiviat名称更改为radarchart，并将相关的kiv更改为rad，
 %     将kiviat更改为radar
+%  7. 为\tkzRadarDiagram和\tkzRadarDiagramFromFile命令中的维度坐标轴
+%     添加锚点控制代码。
 %
 % 原文件是：
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -34,6 +36,7 @@
 %\usetikzlibrary{calc}
 % pgfplotstable宏包，用于读入数据文件
 \RequirePackage{pgfplotstable}
+\pgfplotsset{compat=1.16}
 
 %<--------------------------------------------------------------------------->
 \makeatletter
@@ -88,11 +91,64 @@
         (0,0)% 原点
          -- (360/\tkz@rad@radial*\rang: % 极坐标方向(角度)
              \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp);% 极坐标半径
-      \path% 维度坐标轴标签
+
+      % 放置坐标轴标签
+      %\pgfmathsetmacro{\ang}{360/\tkz@rad@radial*\rang}% 浮点数角度
+      \pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
+      % 270到360间的锚点
+      \pgfmathparse{(\ang)<360&&(\ang)>270}
+      \ifnum\pgfmathresult=1
+        \def\anchor{north west}
+      \fi
+
+      % 180到270间的锚点
+      \pgfmathparse{(\ang)<270&&(\ang)>180}
+      \ifnum\pgfmathresult=1
+        \def\anchor{north east}
+      \fi
+
+      % 90到180间的锚点
+      \pgfmathparse{(\ang)<180&&(\ang)>90}
+      \ifnum\pgfmathresult=1
+        \def\anchor{south east}
+      \fi
+
+      % 0到90度间的锚点
+      \pgfmathparse{(\ang)<90&&(\ang)>0}
+      \ifnum\pgfmathresult=1
+        \def\anchor{south west}
+      \fi
+
+      % 4个主方向的锚点
+      % 东
+      \pgfmathparse{(\ang)==0}
+      \ifnum\pgfmathresult=1
+        \def\anchor{west}
+      \fi
+      % 北
+      \pgfmathparse{(\ang)==90}
+      \ifnum\pgfmathresult=1
+        \def\anchor{south}
+      \fi
+      % 西
+      \pgfmathparse{(\ang)==180}
+      \ifnum\pgfmathresult=1
+        \def\anchor{east}
+      \fi
+      % 南
+      \pgfmathparse{(\ang)==270}
+      \ifnum\pgfmathresult=1
+        \def\anchor{north}
+      \fi
+
+      %\show\anchor
+      
+      % 放置维度坐标轴标签
+      \path% 
         (0,0)% 原点
          -- (360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
              \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space)% 极坐标半径
-             node[/Radar/label style] {\x};% 标签
+             node[/Radar/label style, anchor=\anchor] {\x};% 标签
     }%
     % 修正代码(用闭合路径绘制网格线，耿楠, 2019.01.01)
     \pgfmathtruncatemacro{\rd}{\tkz@rad@radial - 1}
@@ -293,11 +349,64 @@
         (0,0)% 原点
         --(360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
            \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp);% 极坐标半径
-      \path% 维度坐标轴标签
+
+      % 放置坐标轴标签
+      \pgfmathsetmacro{\ang}{360/\tkz@rad@radial*\rang}% 浮点数角度
+      %\pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
+      % 270到360间的锚点
+      \pgfmathparse{(\ang)<360&&(\ang)>270}
+      \ifnum\pgfmathresult=1
+        \def\anchor{north west}
+      \fi
+
+      % 180到270间的锚点
+      \pgfmathparse{(\ang)<270&&(\ang)>180}
+      \ifnum\pgfmathresult=1
+        \def\anchor{north east}
+      \fi
+
+      % 90到180间的锚点
+      \pgfmathparse{(\ang)<180&&(\ang)>90}
+      \ifnum\pgfmathresult=1
+        \def\anchor{south east}
+      \fi
+
+      % 0到90度间的锚点
+      \pgfmathparse{(\ang)<90&&(\ang)>0}
+      \ifnum\pgfmathresult=1
+        \def\anchor{south west}
+      \fi
+
+      % 4个主方向的锚点
+      % 东
+      \pgfmathparse{(\ang)==0}
+      \ifnum\pgfmathresult=1
+        \def\anchor{west}
+      \fi
+      % 北
+      \pgfmathparse{(\ang)==90}
+      \ifnum\pgfmathresult=1
+        \def\anchor{south}
+      \fi
+      % 西
+      \pgfmathparse{(\ang)==180}
+      \ifnum\pgfmathresult=1
+        \def\anchor{east}
+      \fi
+      % 南
+      \pgfmathparse{(\ang)==270}
+      \ifnum\pgfmathresult=1
+        \def\anchor{north}
+      \fi
+
+      %\show\anchor
+      
+      % 放置维度坐标轴标签
+      \path
         (0,0)% 原点
         -- (360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
             \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space)% 极坐标半径
-        node[/Radarfile/label style] {\pgfplotsretval};% 标签
+        node[/Radarfile/label style, anchor=\anchor] {\pgfplotsretval};% 标签
     }
     
     % 修正代码(闭合路径绘制网格线，耿楠, 2019.01.01)
