@@ -1,0 +1,40 @@
+\documentclass{standalone}
+
+\usepackage{ctex}
+% 此处使用"../"是因为"radarchart.sty"在上一级目录中
+% 正常使用是应该将"radarchart.sty"与当前".tex"文件的工作目录置于同一目
+% 录，然后使用\usepackage{radarchart}载入该宏包。
+\usepackage{../radarchart}
+
+\begin{document}
+
+\begin{tikzpicture}[label distance=.15cm,rotate=30,scale=.75]
+
+\tkzRadarDiagram[
+       radial=6,
+       lattice=6,
+       gap=1,
+       step=2,
+       label space=2
+      ]%
+      {市场,
+       销售,
+       管理,
+       信息,
+       售后,
+       开发
+      }
+  \tkzRadarLine[thick,color=red](2.25,2.5,0.6,1.2,1,1)
+  \tkzRadarLine[thick,color=blue](1,2,1,1.7,1.3,3)
+  \tkzRadarGrad[prefix=\$,unity=10](0)
+ \end{tikzpicture}
+
+\end{document}
+
+
+ 
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

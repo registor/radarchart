@@ -1,0 +1,44 @@
+\documentclass{standalone}
+
+\usepackage{ctex}
+\usepackage[usenames,dvipsnames]{xcolor}
+% 此处使用"../"是因为"radarchart.sty"在上一级目录中
+% 正常使用是应该将"radarchart.sty"与当前".tex"文件的工作目录置于同一目
+% 录，然后使用\usepackage{radarchart}载入该宏包。
+\usepackage{../radarchart}
+
+\begin{document} 
+
+\begin{tikzpicture}
+\tkzRadarDiagram[
+        scale=1.25,
+        label distance=.5cm,
+        radial  = 5,
+        gap     = 1,  
+        lattice = 5
+       ]{张三, 李四, 王五, 赵六, 周七}
+\tkzRadarLine[
+        thick,
+        color=blue,
+        mark=none,
+        fill=blue!20,
+        opacity=.5](3,3.5,3,3.5,3)
+\tkzRadarLine[
+        thick,
+        color=darkgray,
+        fill=green!20,
+        opacity=.5](0.5,1,0.5,0.75,1) 
+\tkzRadarLine[
+        ultra thick,
+        mark=ball,
+        mark size=4pt,
+        color =Maroon](2,3.75,1,1.5,2)    
+\tkzRadarGrad[prefix=,unity=100,suffix=\ \textyen](1)  
+\end{tikzpicture}
+
+\end{document}   
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

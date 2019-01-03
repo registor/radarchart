@@ -1,0 +1,34 @@
+\documentclass{standalone}
+
+\usepackage{ctex}
+% 此处使用"../"是因为"radarchart.sty"在上一级目录中
+% 正常使用是应该将"radarchart.sty"与当前".tex"文件的工作目录置于同一目
+% 录，然后使用\usepackage{radarchart}载入该宏包。
+\usepackage{../radarchart}
+
+\pgfplotsset{compat=1.16}
+
+\begin{document}
+\begin{tikzpicture}[font=\tiny]
+  \tkzRadarDiagram[
+         lattice=5,
+         label space = 0.8,
+         %radial  style/.style ={-},% 不需要维度坐标轴箭头
+         lattice style/.style ={blue!30}
+        ]%
+        {攻, 暴, 控, 闪, 血, 防}
+   \tkzRadarLegend[
+         thick,
+         mark=ball,
+         mark size=2pt,
+         fill=red!20]{red/天王/{4, 3, 4, 2, 3, 4},
+                      blue/地王/{3, 5, 3, 4, 3, 2},
+                      green/逍遥/{4, 4, 5, 3, 3, 2}}
+\end{tikzpicture}
+
+\end{document}   
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

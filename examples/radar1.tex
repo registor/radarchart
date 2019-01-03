@@ -1,0 +1,43 @@
+\documentclass{standalone}
+
+\usepackage{ctex}
+% 此处使用"../"是因为"radarchart.sty"在上一级目录中
+% 正常使用是应该将"radarchart.sty"与当前".tex"文件的工作目录置于同一目
+% 录，然后使用\usepackage{radarchart}载入该宏包。
+\usepackage{../radarchart}
+
+\begin{document} 
+ 
+
+\begin{tikzpicture}
+\tkzRadarDiagram[lattice=5]{攻, 暴, 控, 闪, 血, 防} 
+  \tkzRadarLine[thick,
+                color      = blue,
+                mark       = ball,
+                mark size  = 4pt,
+                fill       = blue!20,
+                opacity=.5](3, 2, 4, 3, 3, 5)   
+\end{tikzpicture}  
+
+\begin{tikzpicture}
+  \tkzRadarDiagram[lattice=5]{攻, 暴, 控, 闪, 血, 防}
+  \tkzRadarLine[thick,
+                color      = red,
+                mark       = ball,
+                ball color = red,
+                mark size  = 4pt,
+                opacity    = .2, 
+                fill=red!20](3, 2, 3, 2, 5, 4)
+ \tkzRadarLine[thick,
+               color      = blue,
+               mark       = ball,
+               mark size  = 4pt,
+               fill       = blue!20,
+               opacity=.5](5, 4, 2, 4, 3, 2)
+\end{tikzpicture}  
+\end{document}   
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

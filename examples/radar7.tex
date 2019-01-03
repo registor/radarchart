@@ -1,0 +1,31 @@
+\documentclass{standalone}
+
+\usepackage{ctex}
+% 此处使用"../"是因为"radarchart.sty"在上一级目录中
+% 正常使用是应该将"radarchart.sty"与当前".tex"文件的工作目录置于同一目
+% 录，然后使用\usepackage{radarchart}载入该宏包。
+\usepackage{../radarchart}
+
+\pgfplotsset{compat=1.16}
+
+\begin{document}
+\begin{tikzpicture}[font=\tiny]
+  \tkzRadarDiagramFromFile[
+        scale=.5,
+        label distance=.5cm,
+        gap     = 1,
+        label space=0.8,  
+        lattice = 5]{radar7.dat}
+  \tkzRadarLegendFromFile[thick,                        
+                          mark       = ball,
+                          mark size  = 2pt,
+                          fill       = green!40]{radar7.dat}   
+  
+\end{tikzpicture}
+
+\end{document}   
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

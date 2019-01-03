@@ -1,0 +1,540 @@
+% Copyright 2018 by 耿楠
+%
+% 该代码改自于：https://github.com/tkz-sty/tkz-kiviat
+%
+% 主要是修改：
+%  1. 修改原\tkzRadarDiagramFromFile中的\tkz@rad@radial为全局量，
+%     以便\tkzRadarGrad命令，可以适用于相关命令，原文件中会出错。
+%  2. 添加\tkzRadarLegend命令以从数据直接绘制带图例的雷达图。
+%  3. 添加\tkzRadarLegendFromFile命令以从文件数据绘制带图例的雷达图。
+%  4. 添加\tkzLegendBox命令以在原命令绘制的雷达上添加图例。
+%  5. 修订了\tkzRadarGrad命令，以能够标记小数数轴刻度值
+%  6. 根据"https://en.wikipedia.org/wiki/Radar_chart"的说明将原
+%     tkz-kiviat名称更改为radarchart，并将相关的kiv更改为rad，
+%     将kiviat更改为radar
+%
+% 原文件是：
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %                                                               %
+    %          radarchart.sty      encodage : utf8                  %
+    %                                                               %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 目的:  绘制用于表达多维数据表示的雷达图
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{radarchart }[2019/01/01 v0.1]
+
+% 载入必要的宏包
+% tikz绘图宏包
+\RequirePackage{tikz}
+% 需要的tikz绘图宏包库
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{arrows, fit}
+\usetikzlibrary{positioning}
+%\usetikzlibrary{calc}
+% pgfplotstable宏包，用于读入数据文件
+\RequirePackage{pgfplotstable}
+
+%<--------------------------------------------------------------------------->
+\makeatletter
+\def\tkzutil@empty{}
+
+%<--------------------------------------------------------------------------->
+% 通过参数绘制雷达图网格
+%<--------------------------------------------------------------------------->
+% 定义 \tkzRadarDiagram 命令的可选key=val参数
+\pgfkeys{%
+  /Radar/.cd,
+  space/.code            =  {\def\tkz@rad@sp{#1}},% 维度坐标轴端点外延距离
+  gap/.code              =  {\def\tkz@rad@gap{#1}},% 径向网格间距
+  lattice/.code          =  {\def\tkz@rad@lattice{#1}},% 径向网格数量
+  step/.code             =  {\def\tkz@rad@step{#1}},% 数据步长
+  radial style/.style    =  {->,>=latex'},% 维度坐标轴箭头样式
+  lattice style/.style   =  {thin,lightgray},% 网格样式
+  label style/.style     =  {text width=2 cm,align=center},% 维度坐标轴标签样式
+  label space/.code      =  {\def\tkz@rad@space{#1}},% 标签与坐标轴端点间的间距
+  /Radar/.unknown/.code  =  {\let\searchname=\pgfkeyscurrentname
+                             \pgfkeysalso{\searchname/.try=#1,
+                             /tikz/\searchname/.retry=#1}
+                            }% 未定义的参数
+} 
+
+% 定义雷达图网格绘制命令
+\def\tkzRadarDiagram{\pgfutil@ifnextchar[{\tkz@RadarDiagram}{%
+                                            \tkz@RadarDiagram[]}} 
+
+% 可选参数默认值
+\def\tkz@RadarDiagram[#1]#2{%
+  \pgfkeys{
+    /Radar/.cd,
+    gap          = .5,
+    lattice      = 10,
+    space        = .5,
+    step         = 1,
+    label space  = 1.0
+  }
+
+  \pgfqkeys{/Radar}{#1}% 获取可选参数
+
+  % 开始绘制网格
+  \begingroup
+    % 定义全局量
+    \foreach \x [count=\rang from 1] in {#2}{% 统计数据维度
+      \global\let\tkz@rad@radial\rang% 需要设置为全局量，因为在坐标刻度绘制命令\tkzRadarGrad中要用到这一变量
+    }%
+ 
+    \foreach \x [count=\rang from 0] in {#2}{%
+      \draw[/Radar/radial style]% 绘制维度坐标轴
+        (0,0)% 原点
+         -- (360/\tkz@rad@radial*\rang: % 极坐标方向(角度)
+             \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp);% 极坐标半径
+      \path% 维度坐标轴标签
+        (0,0)% 原点
+         -- (360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
+             \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space)% 极坐标半径
+             node[/Radar/label style] {\x};% 标签
+    }%
+    % 修正代码(用闭合路径绘制网格线，耿楠, 2019.01.01)
+    \pgfmathtruncatemacro{\rd}{\tkz@rad@radial - 1}
+    \foreach \y in {0,...,\tkz@rad@lattice}{% 绘制网格线
+      \draw[/Radar/lattice style]% 网格线样式
+        (360/\tkz@rad@radial*0:% 极坐标方向(角度)
+         \y*\tkz@rad@gap)% 极坐标半径
+
+        \foreach \x in {1,...,\rd}{%
+          --(360/\tkz@rad@radial*\x:% 极坐标方向(角度)
+             \y*\tkz@rad@gap)% 极坐标半径
+        }
+        -- cycle;
+    }%
+
+    % 为各个坐标点添加标记(耿楠, 2019.01.03)
+    \foreach \y in {0,...,\tkz@rad@lattice}{%
+      \foreach \x in {0,...,\rd}{%
+        \fill (360/\tkz@rad@radial*\x:% 极坐标方向(角度)
+               \y*\tkz@rad@gap)% 极坐标半径
+           circle (0.6pt);%
+      }%
+    }%
+  \endgroup
+}
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLine数据线绘制命令 
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLine命令的可选key=val参数
+\pgfkeys{
+  /Radarline/.cd,
+  fill/.code                = {\global\def\tkz@radl@fill{#1}},% 填充颜色
+  opacity/.code             = {\global\def\tkz@radl@opacity{#1}},% 透明度
+  /Radarline/.unknown/.code = {\let\searchname=\pgfkeyscurrentname
+                               \pgfkeysalso{\searchname/.try=#1,
+                               /tikz/\searchname/.retry=#1}
+                              }% 未定义的参数
+}  
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLine绘制命令
+\def\tkzRadarLine{\pgfutil@ifnextchar[{\tkz@RadarLine}{%
+                                            \tkz@RadarLine[]}} 
+\def\tkz@RadarLine[#1](#2,#3){% 
+  \begingroup
+    % 可选参数默认值
+    \pgfkeys{/Radarline/.cd,
+    fill= {},
+    opacity=.5
+    }
+
+    \pgfqkeys{/Radarline}{#1}% 获取可选参数
+
+    % 绘制数据线封闭填充区域
+    \ifx\tkzutil@empty\tkz@radl@fill \else% 如果填充色参数不为空
+      \begin{scope}[on background layer]% (TODO: 应该考虑闭合？)
+        \path[fill=\tkz@radl@fill, opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
+          (0:#2*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标)
+          \foreach \v [count=\rang from 1] in {#3}{% 其它点
+            -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+          }%
+          -- (360/\tkz@rad@radial*0:#2*\tkz@rad@gap*\tkz@rad@step);% 终点闭合点坐标(极坐标)
+      \end{scope}%
+    \fi%
+
+    % 绘制数据线
+    \draw[#1,opacity=1] (0:#2*\tkz@rad@gap*\tkz@rad@step) % 起点坐标(极坐标)
+      plot coordinates {(360/\tkz@rad@radial*0:#2*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+    \foreach \v [count=\rang from 1] in {#3}{%
+      -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+      plot coordinates {(360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+    }%
+    -- (0:#2*\tkz@rad@gap*\tkz@rad@step);% 终点坐标(极坐标)
+  \endgroup%
+}%  
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLegend带图例的数据线绘制命令(耿楠，2019.01.03) 
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLegend命令的可选key=val参数
+\pgfkeys{
+  /Radarlegend/.cd,
+  fill/.code             = {\global\def\tkz@radl@fill{#1}},% 哑元参数，仅表示是否填充区域，具体颜色由#2参数中的值确定
+  opacity/.code             = {\global\def\tkz@radl@opacity{#1}},% 透明度
+  /Radarlegend/.unknown/.code = {\let\searchname=\pgfkeyscurrentname
+                               \pgfkeysalso{\searchname/.try=#1,
+                               /tikz/\searchname/.retry=#1}
+                              }% 未定义的参数
+}  
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLegend带图例绘制命令
+\def\tkzRadarLegend{\pgfutil@ifnextchar[{\tkz@RadarLegend}{%
+                                            \tkz@RadarLegend[]}} 
+\def\tkz@RadarLegend[#1]#2{% 
+  \begingroup
+    % 可选参数默认值
+  \pgfkeys{/Radarlegend/.cd,
+    fill = {},
+    opacity=.5
+    }
+
+    \pgfqkeys{/Radarlegend}{#1}% 获取可选参数 
+    %\show\tkz@rad@radial
+
+    \foreach \clr/\name/\val [count=\cnt from 1] in {#2}{
+      % 起点数据值
+      \pgfmathtruncatemacro{\idx}{0}%
+      \pgfmathparse{{\val}[0]}% 取得\val中的下标为0的值
+      \let\stv\pgfmathresult%
+      % 绘制数据线封闭填充区域
+      \ifx\tkzutil@empty\tkz@radl@fill \else% 如果填充选项为空
+        \begin{scope}[on background layer]%
+          \path[fill=\clr!20, opacity=\tkz@radl@opacity]% 则用指定填充色的%20填充区域
+            (0:\stv*\tkz@rad@gap*\tkz@rad@step)%起点坐标(极坐标)
+            \foreach \v [count=\rang from 0] in \val{            
+              -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+            }
+            -- (0:\stv*\tkz@rad@gap*\tkz@rad@step);% 终点坐标(极坐标)
+        \end{scope}%
+      \fi%
+
+      % 绘制数据线
+      %\show\clr
+      \draw[#1, color=\clr, ball color=\clr, opacity=1] 
+        (0:\stv*\tkz@rad@gap*\tkz@rad@step) % 起点坐标(极坐标)
+        plot coordinates {(0:\stv*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+        \foreach \v [count=\rang from 0] in \val{%
+          -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+          plot coordinates {(360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+        }%
+        -- (0:\stv*\tkz@rad@gap*\tkz@rad@step);% 终点坐标(极坐标)
+
+      % 绘制图例
+      \pgfmathsetmacro{\off}{\tkz@rad@lattice*\tkz@rad@gap*\tkz@rad@step+\tkz@rad@sp + \tkz@rad@space - 0.3}%
+      \pgfmathsetmacro{\cntoff}{\cnt * 0.4}%
+      \pgfsetstrokecolor{\clr}%
+      \fill[shift={(\off, -\cntoff + \off - 0.2)}, \clr, opacity=\tkz@radl@opacity] (0,0) rectangle(0.5,-.1);
+      \node[shift={(\off, -\cntoff + \off - 0.2)}, anchor=west] at (.4,-.05) {\name}; 
+    } 
+  \endgroup%
+}%  
+%<--------------------------------------------------------------------------->
+% 通过读入文件数据绘制雷达图网格
+%<--------------------------------------------------------------------------->
+% 定义 \tkzRadarDiagramFromFile 命令的可选key=val参数
+\pgfkeys{%
+  /Radarfile/.cd,
+  space/.code               = {\def\tkz@rad@sp{#1}},% 维度坐标轴端点外延距离
+  gap/.code                 = {\def\tkz@rad@gap{#1}},% 径向网格间距
+  lattice/.code             = {\def\tkz@rad@lattice{#1}},% 径向网格数量
+  step/.code                = {\def\tkz@rad@step{#1}},% 数据缩放因子
+  radial style/.style       = {->,>=latex'},% 维度坐标轴箭头样式 
+  lattice style/.style      = {thin,lightgray},% 网格样式
+  label style/.style        = {text width=2 cm,align=center},% 维度坐标轴标签样式
+  label space/.code         = {\def\tkz@rad@space{#1}},% 标签与维度坐标轴端点间的间距  
+  /Radarfile/.unknown/.code = {\let\searchname=\pgfkeyscurrentname
+                               \pgfkeysalso{\searchname/.try=#1,
+                               /tikz/\searchname/.retry=#1}
+                              }% 未定义的参数
+}
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarDiagramFromFile从文件读入的数据绘制网格命令
+%<---------------------------------------------------------------------------> 
+% 定义\tkzRadarDiagramFromFile命令
+\def\tkzRadarDiagramFromFile{\pgfutil@ifnextchar[{\tkz@RadarFile}{%
+                                                    \tkz@RadarFile[]}} 
+\def\tkz@RadarFile[#1]#2{% 
+  % 可选参数默认值
+  \pgfkeys{
+    /Radarfile/.cd,
+    gap         = .5,
+    lattice     = 10,
+    space       = .5,
+    step        = 1,
+    label space = 1.0,
+    table       = false 
+  }
+  \pgfqkeys{/Radarfile}{#1}% 获取可选参数
+  % 开始绘制网格
+  \begingroup
+    \pgfplotstableread{#2}\tkz@raddata
+    %\pgfplotstablevertcat{\tkz@raddata}{#2}% 从#2指定的文件中读取数据
+    \pgfplotstablegetrowsof{\tkz@raddata}% 获取数据行数(雷达图维度)
+    \pgfmathsetmacro{\nbrows}{\pgfplotsretval}% 数据总行数
+    %\show\nbrows
+    \pgfmathsetmacro{\rows}{\pgfplotsretval-1}% 数据行数最大值(从0开始计数)
+    %\show\rows
+    \pgfplotstablegetcolsof{\tkz@raddata}% 获取数据列数 
+    \pgfmathsetmacro{\cols}{\pgfplotsretval-1}% 真实数据列数(第1列为数据维度名称列)
+    %\show\cols
+    \pgfplotstablevertcat{\tkz@raddata}{\tkz@raddata}% 将原数据复制追加，当行索引值超出最后一行，相当于取到第0行数据
+    %\pgfplotstablegetelem{0}{[index] 0}\of{\tkz@raddata}
+    
+    %\edef\tkz@rad@radial{\nbrows}% (原代码)
+    \global\let\tkz@rad@radial\nbrows % 需要设置为全局量，因为在坐标刻度绘制命令\tkzRadarGrad中要用到这一变量(耿楠，2019.01.03)
+
+    \foreach \x [count=\rang from 0] in {0,...,\rows}{%
+      \pgfplotstablegetelem{\x}{[index] 0}\of{\tkz@raddata}% 读取第\x行，第0列的数据
+      \draw[/Radarfile/radial style]% 绘制维度坐标轴
+        (0,0)% 原点
+        --(360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
+           \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp);% 极坐标半径
+      \path% 维度坐标轴标签
+        (0,0)% 原点
+        -- (360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
+            \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space)% 极坐标半径
+        node[/Radarfile/label style] {\pgfplotsretval};% 标签
+    }
+    
+    % 修正代码(闭合路径绘制网格线，耿楠, 2019.01.01)
+    \pgfmathtruncatemacro{\rd}{\tkz@rad@radial - 1}
+    \foreach \y in {0,...,\tkz@rad@lattice}{% 绘制线
+      \draw[/Radarfile/lattice style]% 网格线样式
+        (0:% 极坐标方向(角度)，起点坐标
+         \y*\tkz@rad@gap)% 极坐标半径
+
+        \foreach \x in {1,...,\rd}{%
+          --(360/\tkz@rad@radial*\x:% 极坐标方向(角度)， 其它点坐标
+             \y*\tkz@rad@gap)% 极坐标半径
+        }
+        -- cycle;% 闭合
+    }%
+
+    % 为各个坐标点添加标记(耿楠, 2019.01.03)
+    \foreach \y in {0,...,\tkz@rad@lattice}{%
+      \foreach \x in {0,...,\rd}{%
+        \fill (360/\tkz@rad@radial*\x:% 极坐标方向(角度)
+               \y*\tkz@rad@gap)% 极坐标半径
+           circle (1.3pt);%
+      }%
+    }%
+  \endgroup
+}   
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLineFromFile数据线绘制命令 
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLineFromFile命令的可选key=val参数
+\pgfkeys{
+  /Radarlinefile/.cd,
+  fill/.code                    = {\global\def\tkz@radl@fill{#1}},% 填充颜色
+  opacity/.code                 = {\global\def\tkz@radl@opacity{#1}},% 透明度 
+  /Radarlinefile/.unknown/.code = {\let\searchname=\pgfkeyscurrentname
+                                   \pgfkeysalso{\searchname/.try=#1,
+                                   /tikz/\searchname/.retry=#1}
+                                  }% 未定义的参数   
+}  
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLineFromFile绘制命令
+\def\tkzRadarLineFromFile{\pgfutil@ifnextchar[{\tkz@RadarLineFile}{%
+                                            \tkz@RadarLineFile[]}} 
+\def\tkz@RadarLineFile[#1]#2#3{% #2是数据文件名称，#3是列号
+  \begingroup
+    % 可选参数默认值
+    \pgfkeys{
+      /Radarlinefile/.cd,
+      fill = {},
+      opacity = 0.5
+    }
+    \pgfqkeys{/Radarlinefile}{#1}% 获取可选参数
+    
+    \pgfplotstableread{#2}\tkz@raddata% 从#2指定的文件中读取数据
+    %\pgfplotstablevertcat{\tkz@raddata}{#2}% 从#2指定的文件中读取数据
+    \pgfplotstablegetrowsof{\tkz@raddata}% 获取数据行数
+    \pgfmathsetmacro{\nbrows}{\pgfplotsretval}% 数据总行数
+    \pgfmathsetmacro{\rows}{\pgfplotsretval-1}% 数据行数最大值(从0开始计数)
+    \pgfplotstablegetcolsof{\tkz@raddata}% 获取数据列数
+    \pgfmathsetmacro{\cols}{\pgfplotsretval-1}% 真实数据列数(第1列为数据维度名称列)
+    \pgfplotstablevertcat{\tkz@raddata}{\tkz@raddata}% 将原数据复制追加，当行索引值超出最后一行，相当于取到第0行数据
+
+    % 绘制数据线封闭填充区域
+    \ifx\tkzutil@empty\tkz@radl@fill \else% 如果填充色参数不为空 
+      \begin{scope}[on background layer] 
+        \pgfplotstablegetelem{0}{[index] #3}\of{\tkz@raddata}% 取得第0行第#3列的数据
+        \let\actualval\pgfplotsretval% 将数据存入\actualval
+
+        \path[fill=\tkz@radl@fill,opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
+          (0:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
+        \foreach \v [count=\rang from 1] in {1,...,\nbrows}{% 其它点
+          \pgfextra{\pgfplotstablegetelem{\v}{[index] #3}\of{\tkz@raddata}}% 取得第\v行第#3列的数据
+            -- (360/\tkz@rad@radial*\v:\pgfplotsretval*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+        };   
+      \end{scope}  
+    \fi
+
+    % 绘制数据线   
+    \foreach \v [count=\rang from 1] in {0,...,\nbrows}{%  
+      \pgfplotstablegetelem{\v}{[index] #3}\of{\tkz@raddata}% 取得第\v行第#3列的数据
+      \let\actualval\pgfplotsretval% 将数据存入\actualval
+      \pgfplotstablegetelem{\rang}{[index] #3}\of{\tkz@raddata}% 取得第\rang行第#3列的数据
+      \let\nextval\pgfplotsretval% 将数据存入\nextval
+      \draw[#1,opacity=1] (360/\tkz@rad@radial*\v:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
+        -- (360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)% 终点坐标(极坐标) 
+        plot coordinates {(360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)};% 绘制节点
+    }   
+  \endgroup
+}%
+%<--------------------------------------------------------------------------->
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLegendFromFile数据线绘制命令 
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLegendFromFile命令的可选key=val参数
+\pgfkeys{
+  /Radarlegendfile/.cd,
+  fill/.code                    = {\global\def\tkz@radl@fill{#1}},% 填充颜色
+  opacity/.code                 = {\global\def\tkz@radl@opacity{#1}},% 透明度 
+  /Radarlegendfile/.unknown/.code = {\let\searchname=\pgfkeyscurrentname
+                                   \pgfkeysalso{\searchname/.try=#1,
+                                   /tikz/\searchname/.retry=#1}
+                                  }% 未定义的参数   
+}  
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarLegendFromFile绘制命令
+%<--------------------------------------------------------------------------->
+\def\tkzRadarLegendFromFile{\pgfutil@ifnextchar[{\tkz@RadarLegendFile}{%
+                                            \tkz@RadarLegendFile[]}} 
+\def\tkz@RadarLegendFile[#1]#2{% #2是数据文件名称
+  \begingroup
+    % 可选参数默认值
+    \pgfkeys{
+      /Radarlegendfile/.cd,
+      fill = {},
+      opacity = 0.5
+    }
+    \pgfqkeys{/Radarlegendfile}{#1}% 获取可选参数
+    
+    \pgfplotstableread{#2}\tkz@raddata% 从#2指定的文件中读取数据
+    %\pgfplotstablevertcat{\tkz@raddata}{#2}% 从#2指定的文件中读取数据
+    \pgfplotstablegetrowsof{\tkz@raddata}% 获取数据行数
+    \pgfmathsetmacro{\nbrows}{\pgfplotsretval}% 数据总行数
+    \pgfmathsetmacro{\rows}{\pgfplotsretval-1}% 数据行数最大值(从0开始计数)
+    \pgfplotstablegetcolsof{\tkz@raddata}% 获取数据列数
+    \pgfmathsetmacro{\cols}{\pgfplotsretval-1}% 真实数据列数(第1列为数据维度名称列)
+    \pgfplotstablevertcat{\tkz@raddata}{\tkz@raddata}% 将原数据复制追加，当行索引值超出最后一行，相当于取到第0行数据
+
+    \pgfplotstableforeachcolumn\tkz@raddata\as\namecol{%
+      \ifnum\pgfplotstablecol=0 \else
+        % 绘制数据线封闭填充区域
+        \ifx\tkzutil@empty\tkz@radl@fill \else% 如果填充色参数不为空 
+          \begin{scope}[on background layer] 
+            \pgfplotstablegetelem{0}{[index]\pgfplotstablecol}\of{\tkz@raddata}% 取得第0行第\pgfplotstablecol列的数据
+            \let\actualval\pgfplotsretval% 将数据存入\actualval
+
+            \foreach \ccc/\cnn in \namecol{% 取得颜色值和列名称分别存入\cclr和\cname
+              \global\let\cclr\ccc
+              \global\let\cname\cnn
+            }
+            
+            \path[fill=\cclr!20, opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
+              (0:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
+            \foreach \v [count=\rang from 1] in {1,...,\nbrows}{% 其它点
+              \pgfextra{\pgfplotstablegetelem{\v}{[index]\pgfplotstablecol}\of{\tkz@raddata}}% 取得第\v行第\pgfplotstablecol列的数据
+                -- (360/\tkz@rad@radial*\v:\pgfplotsretval*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+            };%
+          \end{scope}  
+        \fi
+
+        % 绘制数据线   
+        \foreach \v [count=\rang from 1] in {0,...,\nbrows}{%  
+          \pgfplotstablegetelem{\v}{[index]\pgfplotstablecol}\of{\tkz@raddata}% 取得第\v行第\pgfplotstablecol列的数据
+          \let\actualval\pgfplotsretval% 将数据存入\actualval
+          \pgfplotstablegetelem{\rang}{[index]\pgfplotstablecol}\of{\tkz@raddata}% 取得第\rang行第\pgfplotstablecol列的数据(下一行的数据)
+          \let\nextval\pgfplotsretval% 将数据存入\nextval
+          \draw[#1,color=\cclr, ball color=\cclr, opacity=1]
+            (360/\tkz@rad@radial*\v:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
+            -- (360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)% 终点坐标(极坐标) 
+            plot coordinates {(360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)};% 绘制节点
+        }
+        
+        % 绘制图例
+        \pgfmathsetmacro{\foff}{\tkz@rad@lattice*\tkz@rad@gap*\tkz@rad@step+\tkz@rad@sp + \tkz@rad@space - 0.3}%
+        \pgfmathsetmacro{\fcoloff}{\pgfplotstablecol * 0.4}%
+        \pgfmathsetmacro{\fncoloff}{\pgfplotstablecol * 0.2}%
+        \pgfsetstrokecolor{\cclr}%
+        \fill[shift={(\foff, -\fcoloff + \foff - 0.2)}, \cclr, opacity=\tkz@radl@opacity] (0,0) rectangle(0.5,-.1);
+        \node[shift={(\foff - 2.6, -\fncoloff + \foff - 3.1)}, anchor=west] at (-.4,-.05) {\cname};  
+      \fi
+    }
+  \endgroup
+}%
+
+%  定义\tkzRadarGrad坐标轴刻度绘制命令
+%<--------------------------------------------------------------------------->
+%  定义\tkzRadarGrad命令的可选key=val参数
+\pgfkeys{
+  /Radargrad/.cd,
+  graduation distance/.code = \def\tkz@rad@grad{#1},% 刻度距轴线的距离
+  prefix/.code              = \def\tkz@rad@prefix{#1},% 刻度文本前缀
+  suffix/.code              = \def\tkz@rad@suffix{#1},% 刻度文本后缀
+  unity/.code               = \def\tkz@rad@unity{#1},% 刻度单位
+  /Radargrad/.unknown/.code = {\let\searchname=\pgfkeyscurrentname
+                              \pgfkeysalso{\searchname/.try=#1,
+                              /tikz/\searchname/.retry=#1}
+                             }% 未定义的参数
+}
+%<--------------------------------------------------------------------------->
+% 定义\tkzRadarGrad绘制命令
+\def\tkzRadarGrad{\pgfutil@ifnextchar[{\tkz@RadarGrad}{\tkz@RadarGrad[]}} 
+
+\def\tkz@RadarGrad[#1](#2){% 
+  \begingroup
+    % 可选参数默认值
+    \pgfkeys{
+      /Radargrad/.cd,
+      graduation distance= 0 pt,
+      prefix ={},
+      suffix={},
+      unity=1
+    }
+    \pgfqkeys{/Radargrad}{#1}% 获取可选参数
+
+    \let\tikz@label@distance@tmp\tikz@label@distance% 保存现有距离
+    \global\let\tikz@label@distance\tkz@rad@grad% 设置新距离
+
+    \foreach \nv in {1,...,\tkz@rad@lattice}{% 绘制刻度
+      \pgfmathparse{\tkz@rad@unity*\nv}% 刻度值
+      \pgfmathsetmacro{\result}{\pgfmathresult}% 浮点数刻度值(耿楠，2019.01.01)
+      %\pgfmathtruncatemacro{\result}{\pgfmathresult}% 整数刻度值(原代码)
+      \protected@edef\tkz@rad@gd{\tkz@rad@prefix$\pgfmathprintnumber[fixed, precision=2]{\result}$\tkz@rad@suffix}% 拼装浮点数刻度文本(加前缀和后缀，耿楠，2019.01.01)
+      %\protected@edef\tkz@rad@gd{\tkz@rad@prefix$\result$\tkz@rad@suffix}% 拼装整数刻度文本(加前缀和后缀)(原代码)
+      \path[/Radargrad/.cd,#1] 
+        (0:0)% 起点坐标
+        --(360/\tkz@rad@radial*#2:\nv*\tkz@rad@gap)% 终点坐标
+        node[label=(360/\tkz@rad@radial*#2)-90:\tkz@rad@gd] {};% 
+    }
+    \let\tikz@label@distance\tikz@label@distance@tmp% 恢复距离
+  \endgroup
+}%
+%<--------------------------------------------------------------------------->
+\makeatother
+%<--------------------------------------------------------------------------->
+% 定义绘制图例的命令(耿楠，2019.01.01)
+\newcommand{\tkzLegendBox}[3][]{%
+\xdef\fitbox{}%
+\coordinate[#1] (LegendBox_anchor) at (#2) ;
+    \foreach \col/\item [count=\hi from 0] in {#3} {
+       \node[color = \col,draw,
+             fill  = \col!50,
+             minimum width  = 4 ex,
+             minimum height = 2 ex,
+             label={[label distance=0.1cm,name=b\hi]right:\item}] at
+             ([xshift=0.6cm, yshift=\hi*4 ex]LegendBox_anchor) {};
+             \xdef\fitbox{\fitbox(b\hi)}
+   }%
+ \node [draw,fit=\fitbox(LegendBox_anchor)] {};
+}
+%<--------------------------- the end --------------------------------------->
+\endinput  
