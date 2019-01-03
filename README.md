@@ -11,11 +11,12 @@
 
 #### 排版样例
 1. 排版样例
-
 ![](./screenshot/radar1.png)
 ![](./screenshot/radar2.png)
+![](./screenshot/radar3.png)
+![](./screenshot/radar4.png)
 ![](./screenshot/radar5.png)
-![](./screenshot/radar7.png)
+![](./screenshot/radar6.png)
 
 
 2. 更多样例请参考"./examples"
