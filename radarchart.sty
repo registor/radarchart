@@ -1,4 +1,4 @@
-% Copyright 2018 by 耿楠
+% Copyright 2019 by 耿楠
 %
 % 该代码改自于：https://github.com/tkz-sty/tkz-kiviat
 %
@@ -11,9 +11,9 @@
 %  5. 修订了\tkzRadarGrad命令，以能够标记小数数轴刻度值
 %  6. 根据"https://en.wikipedia.org/wiki/Radar_chart"的说明将原
 %     tkz-kiviat名称更改为radarchart，并将相关的kiv更改为rad，
-%     将kiviat更改为radar
-%  7. 为\tkzRadarDiagram和\tkzRadarDiagramFromFile命令中的维度坐标轴
-%     添加锚点控制代码。
+%     将kiviat更改为radar。
+%  7. 为维度坐标轴上每个网格点绘制黑色小圆点。
+%  8. 将必要的计算置于循环之外，以减少计算量。
 %
 % 原文件是：
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -52,6 +52,7 @@
   gap/.code              =  {\def\tkz@rad@gap{#1}},% 径向网格间距
   lattice/.code          =  {\def\tkz@rad@lattice{#1}},% 径向网格数量
   step/.code             =  {\def\tkz@rad@step{#1}},% 数据步长
+  tick size/.code        =  {\def\tkz@rad@ticksize{#1}},% 坐标轴上的网格点尺寸
   radial style/.style    =  {->,>=latex'},% 维度坐标轴箭头样式
   lattice style/.style   =  {thin,lightgray},% 网格样式
   label style/.style     =  {text width=2 cm,align=center},% 维度坐标轴标签样式
@@ -74,91 +75,53 @@
     lattice      = 10,
     space        = .5,
     step         = 1,
+    tick size    = 0.5pt,
     label space  = 1.0
   }
 
   \pgfqkeys{/Radar}{#1}% 获取可选参数
 
+  % 定义全局量(减少后续计算过程)
+  \foreach \x [count=\rang from 1] in {#2}{% 统计数据维度
+    \global\let\tkz@rad@radial\rang% 需要设置为全局量，因为在坐标刻度绘制命令\tkzRadarGrad中要用到这一变量
+  }%
+
+  \pgfmathsetmacro{\len}{\tkz@rad@gap*\tkz@rad@step}% 计算网格间距实际长度
+  \global\let\tkz@rad@len\len%
+  \pgfmathsetmacro{\ang}{360/\tkz@rad@radial}% 计算维度坐标间的分度值
+  \global\let\tkz@rad@ang\ang%
+  \pgfmathsetmacro{\rsp}{\tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp}% 计算带外延扩展的半径
+  \global\let\tkz@rad@rsp\rsp%
+  \pgfmathsetmacro{\rspace}{\tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space}% 计算带标签间距的半径
+  \global\let\tkz@rad@rspace\rspace%
+  
+
   % 开始绘制网格
   \begingroup
-    % 定义全局量
-    \foreach \x [count=\rang from 1] in {#2}{% 统计数据维度
-      \global\let\tkz@rad@radial\rang% 需要设置为全局量，因为在坐标刻度绘制命令\tkzRadarGrad中要用到这一变量
-    }%
+    
  
     \foreach \x [count=\rang from 0] in {#2}{%
       \draw[/Radar/radial style]% 绘制维度坐标轴
         (0,0)% 原点
-         -- (360/\tkz@rad@radial*\rang: % 极坐标方向(角度)
-             \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp);% 极坐标半径
-
-      % 放置坐标轴标签
-      %\pgfmathsetmacro{\ang}{360/\tkz@rad@radial*\rang}% 浮点数角度
-      \pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
-      % 270到360间的锚点
-      \pgfmathparse{(\ang)<360&&(\ang)>270}
-      \ifnum\pgfmathresult=1
-        \def\anchor{north west}
-      \fi
-
-      % 180到270间的锚点
-      \pgfmathparse{(\ang)<270&&(\ang)>180}
-      \ifnum\pgfmathresult=1
-        \def\anchor{north east}
-      \fi
-
-      % 90到180间的锚点
-      \pgfmathparse{(\ang)<180&&(\ang)>90}
-      \ifnum\pgfmathresult=1
-        \def\anchor{south east}
-      \fi
-
-      % 0到90度间的锚点
-      \pgfmathparse{(\ang)<90&&(\ang)>0}
-      \ifnum\pgfmathresult=1
-        \def\anchor{south west}
-      \fi
-
-      % 4个主方向的锚点
-      % 东
-      \pgfmathparse{(\ang)==0}
-      \ifnum\pgfmathresult=1
-        \def\anchor{west}
-      \fi
-      % 北
-      \pgfmathparse{(\ang)==90}
-      \ifnum\pgfmathresult=1
-        \def\anchor{south}
-      \fi
-      % 西
-      \pgfmathparse{(\ang)==180}
-      \ifnum\pgfmathresult=1
-        \def\anchor{east}
-      \fi
-      % 南
-      \pgfmathparse{(\ang)==270}
-      \ifnum\pgfmathresult=1
-        \def\anchor{north}
-      \fi
-
-      %\show\anchor
+         -- (\tkz@rad@ang*\rang: % 极坐标方向(角度)
+             \tkz@rad@rsp);% 极坐标半径
       
       % 放置维度坐标轴标签
       \path% 
         (0,0)% 原点
-         -- (360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
-             \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space)% 极坐标半径
-             node[/Radar/label style, anchor=\anchor] {\x};% 标签
+         -- (\tkz@rad@ang*\rang:% 极坐标方向(角度)
+             \tkz@rad@rspace)% 极坐标半径
+             node[/Radar/label style] {\x};% 标签
     }%
     % 修正代码(用闭合路径绘制网格线，耿楠, 2019.01.01)
     \pgfmathtruncatemacro{\rd}{\tkz@rad@radial - 1}
     \foreach \y in {0,...,\tkz@rad@lattice}{% 绘制网格线
       \draw[/Radar/lattice style]% 网格线样式
-        (360/\tkz@rad@radial*0:% 极坐标方向(角度)
+        (0:% 极坐标方向(角度)
          \y*\tkz@rad@gap)% 极坐标半径
 
         \foreach \x in {1,...,\rd}{%
-          --(360/\tkz@rad@radial*\x:% 极坐标方向(角度)
+          --(\tkz@rad@ang*\x:% 极坐标方向(角度)
              \y*\tkz@rad@gap)% 极坐标半径
         }
         -- cycle;
@@ -167,9 +130,9 @@
     % 为各个坐标点添加标记(耿楠, 2019.01.03)
     \foreach \y in {0,...,\tkz@rad@lattice}{%
       \foreach \x in {0,...,\rd}{%
-        \fill (360/\tkz@rad@radial*\x:% 极坐标方向(角度)
+        \fill (\tkz@rad@ang*\x:% 极坐标方向(角度)
                \y*\tkz@rad@gap)% 极坐标半径
-           circle (0.6pt);%
+           circle (\tkz@rad@ticksize);%
       }%
     }%
   \endgroup
@@ -203,24 +166,24 @@
 
     % 绘制数据线封闭填充区域
     \ifx\tkzutil@empty\tkz@radl@fill \else% 如果填充色参数不为空
-      \begin{scope}[on background layer]% (TODO: 应该考虑闭合？)
+      \begin{scope}[on background layer]%
         \path[fill=\tkz@radl@fill, opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
-          (0:#2*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标)
+          (0:#2*\len)% 起点坐标(极坐标)
           \foreach \v [count=\rang from 1] in {#3}{% 其它点
-            -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+            -- (\tkz@rad@ang*\rang:\v*\tkz@rad@len)% 其它点坐标(极坐标)
           }%
-          -- (360/\tkz@rad@radial*0:#2*\tkz@rad@gap*\tkz@rad@step);% 终点闭合点坐标(极坐标)
+          -- (0:#2*\tkz@rad@len);% 终点闭合点坐标(极坐标)
       \end{scope}%
     \fi%
 
     % 绘制数据线
-    \draw[#1,opacity=1] (0:#2*\tkz@rad@gap*\tkz@rad@step) % 起点坐标(极坐标)
-      plot coordinates {(360/\tkz@rad@radial*0:#2*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+    \draw[#1,opacity=1] (0:#2*\tkz@rad@len) % 起点坐标(极坐标)
+      plot coordinates {(0:#2*\tkz@rad@len)}% 绘制节点
     \foreach \v [count=\rang from 1] in {#3}{%
-      -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
-      plot coordinates {(360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+      -- (\tkz@rad@ang*\rang:\v*\tkz@rad@len)% 其它点坐标(极坐标)
+      plot coordinates {(\tkz@rad@ang*\rang:\v*\tkz@rad@len)}% 绘制节点
     }%
-    -- (0:#2*\tkz@rad@gap*\tkz@rad@step);% 终点坐标(极坐标)
+    -- (0:#2*\tkz@rad@len);% 终点坐标(极坐标)
   \endgroup%
 }%  
 %<--------------------------------------------------------------------------->
@@ -251,6 +214,9 @@
     \pgfqkeys{/Radarlegend}{#1}% 获取可选参数 
     %\show\tkz@rad@radial
 
+    % 计算绘制图例需要的参数，放置于循环外，减少计算量
+    \pgfmathsetmacro{\off}{\tkz@rad@lattice*\tkz@rad@gap*\tkz@rad@step+\tkz@rad@sp + \tkz@rad@space - 0.3}%    
+
     \foreach \clr/\name/\val [count=\cnt from 1] in {#2}{
       % 起点数据值
       \pgfmathtruncatemacro{\idx}{0}%
@@ -260,31 +226,31 @@
       \ifx\tkzutil@empty\tkz@radl@fill \else% 如果填充选项为空
         \begin{scope}[on background layer]%
           \path[fill=\clr!20, opacity=\tkz@radl@opacity]% 则用指定填充色的%20填充区域
-            (0:\stv*\tkz@rad@gap*\tkz@rad@step)%起点坐标(极坐标)
+            (0:\stv*\tkz@rad@len)%起点坐标(极坐标)
             \foreach \v [count=\rang from 0] in \val{            
-              -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+              -- (\tkz@rad@ang*\rang:\v*\tkz@rad@len)% 其它点坐标(极坐标)
             }
-            -- (0:\stv*\tkz@rad@gap*\tkz@rad@step);% 终点坐标(极坐标)
+            -- (0:\stv*\tkz@rad@len);% 终点坐标(极坐标)
         \end{scope}%
       \fi%
 
       % 绘制数据线
       %\show\clr
       \draw[#1, color=\clr, ball color=\clr, opacity=1] 
-        (0:\stv*\tkz@rad@gap*\tkz@rad@step) % 起点坐标(极坐标)
-        plot coordinates {(0:\stv*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+        (0:\stv*\tkz@rad@len) % 起点坐标(极坐标)
+        plot coordinates {(0:\stv*\tkz@rad@len)}% 绘制节点
         \foreach \v [count=\rang from 0] in \val{%
-          -- (360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
-          plot coordinates {(360/\tkz@rad@radial*\rang:\v*\tkz@rad@gap*\tkz@rad@step)}% 绘制节点
+          -- (\tkz@rad@ang*\rang:\v*\tkz@rad@len)% 其它点坐标(极坐标)
+          plot coordinates {(\tkz@rad@ang*\rang:\v*\tkz@rad@len)}% 绘制节点
         }%
-        -- (0:\stv*\tkz@rad@gap*\tkz@rad@step);% 终点坐标(极坐标)
+        -- (0:\stv*\tkz@rad@len);% 终点坐标(极坐标)
 
       % 绘制图例
-      \pgfmathsetmacro{\off}{\tkz@rad@lattice*\tkz@rad@gap*\tkz@rad@step+\tkz@rad@sp + \tkz@rad@space - 0.3}%
-      \pgfmathsetmacro{\cntoff}{\cnt * 0.4}%
+      \pgfmathsetmacro{\cntoff}{\cnt * 0.4}%      
       \pgfsetstrokecolor{\clr}%
       \fill[shift={(\off, -\cntoff + \off - 0.2)}, \clr, opacity=\tkz@radl@opacity] (0,0) rectangle(0.5,-.1);
-      \node[shift={(\off, -\cntoff + \off - 0.2)}, anchor=west] at (.4,-.05) {\name}; 
+      % 放置图例标签
+      \path (0,0) -- (\off + 0.4, -\cntoff + \off - 0.25) node[anchor=west] {\name};%  
     } 
   \endgroup%
 }%  
@@ -298,6 +264,7 @@
   gap/.code                 = {\def\tkz@rad@gap{#1}},% 径向网格间距
   lattice/.code             = {\def\tkz@rad@lattice{#1}},% 径向网格数量
   step/.code                = {\def\tkz@rad@step{#1}},% 数据缩放因子
+  tick size/.code           =  {\def\tkz@rad@ticksize{#1}},% 坐标轴上的网格点尺寸
   radial style/.style       = {->,>=latex'},% 维度坐标轴箭头样式 
   lattice style/.style      = {thin,lightgray},% 网格样式
   label style/.style        = {text width=2 cm,align=center},% 维度坐标轴标签样式
@@ -321,6 +288,7 @@
     lattice     = 10,
     space       = .5,
     step        = 1,
+    tick size   = 1.2pt,
     label space = 1.0,
     table       = false 
   }
@@ -342,71 +310,28 @@
     
     %\edef\tkz@rad@radial{\nbrows}% (原代码)
     \global\let\tkz@rad@radial\nbrows % 需要设置为全局量，因为在坐标刻度绘制命令\tkzRadarGrad中要用到这一变量(耿楠，2019.01.03)
+    \pgfmathsetmacro{\len}{\tkz@rad@gap*\tkz@rad@step}% 计算网格间距实际长度
+    \global\let\tkz@rad@len\len%
+    \pgfmathsetmacro{\ang}{360/\tkz@rad@radial}% 计算维度坐标间的分度值
+    \global\let\tkz@rad@ang\ang%
+    \pgfmathsetmacro{\rsp}{\tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp}% 计算带外延扩展的半径
+    \global\let\tkz@rad@rsp\rsp%
+    \pgfmathsetmacro{\rspace}{\tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space}% 计算带标签间距的半径
+    \global\let\tkz@rad@rspace\rspace%
 
     \foreach \x [count=\rang from 0] in {0,...,\rows}{%
       \pgfplotstablegetelem{\x}{[index] 0}\of{\tkz@raddata}% 读取第\x行，第0列的数据
       \draw[/Radarfile/radial style]% 绘制维度坐标轴
         (0,0)% 原点
-        --(360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
-           \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@sp);% 极坐标半径
+        --(\tkz@rad@ang*\rang:% 极坐标方向(角度)
+           \tkz@rad@rsp);% 极坐标半径
 
-      % 放置坐标轴标签
-      \pgfmathsetmacro{\ang}{360/\tkz@rad@radial*\rang}% 浮点数角度
-      %\pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
-      % 270到360间的锚点
-      \pgfmathparse{(\ang)<360&&(\ang)>270}
-      \ifnum\pgfmathresult=1
-        \def\anchor{north west}
-      \fi
-
-      % 180到270间的锚点
-      \pgfmathparse{(\ang)<270&&(\ang)>180}
-      \ifnum\pgfmathresult=1
-        \def\anchor{north east}
-      \fi
-
-      % 90到180间的锚点
-      \pgfmathparse{(\ang)<180&&(\ang)>90}
-      \ifnum\pgfmathresult=1
-        \def\anchor{south east}
-      \fi
-
-      % 0到90度间的锚点
-      \pgfmathparse{(\ang)<90&&(\ang)>0}
-      \ifnum\pgfmathresult=1
-        \def\anchor{south west}
-      \fi
-
-      % 4个主方向的锚点
-      % 东
-      \pgfmathparse{(\ang)==0}
-      \ifnum\pgfmathresult=1
-        \def\anchor{west}
-      \fi
-      % 北
-      \pgfmathparse{(\ang)==90}
-      \ifnum\pgfmathresult=1
-        \def\anchor{south}
-      \fi
-      % 西
-      \pgfmathparse{(\ang)==180}
-      \ifnum\pgfmathresult=1
-        \def\anchor{east}
-      \fi
-      % 南
-      \pgfmathparse{(\ang)==270}
-      \ifnum\pgfmathresult=1
-        \def\anchor{north}
-      \fi
-
-      %\show\anchor
-      
       % 放置维度坐标轴标签
       \path
         (0,0)% 原点
-        -- (360/\tkz@rad@radial*\rang:% 极坐标方向(角度)
-            \tkz@rad@lattice*\tkz@rad@gap+\tkz@rad@space)% 极坐标半径
-        node[/Radarfile/label style, anchor=\anchor] {\pgfplotsretval};% 标签
+        -- (\tkz@rad@ang*\rang:% 极坐标方向(角度)
+            \tkz@rad@rspace)% 极坐标半径
+        node[/Radarfile/label style] {\pgfplotsretval};% 标签
     }
     
     % 修正代码(闭合路径绘制网格线，耿楠, 2019.01.01)
@@ -417,7 +342,7 @@
          \y*\tkz@rad@gap)% 极坐标半径
 
         \foreach \x in {1,...,\rd}{%
-          --(360/\tkz@rad@radial*\x:% 极坐标方向(角度)， 其它点坐标
+          --(\tkz@rad@ang*\x:% 极坐标方向(角度)， 其它点坐标
              \y*\tkz@rad@gap)% 极坐标半径
         }
         -- cycle;% 闭合
@@ -426,9 +351,9 @@
     % 为各个坐标点添加标记(耿楠, 2019.01.03)
     \foreach \y in {0,...,\tkz@rad@lattice}{%
       \foreach \x in {0,...,\rd}{%
-        \fill (360/\tkz@rad@radial*\x:% 极坐标方向(角度)
+        \fill (\tkz@rad@ang*\x:% 极坐标方向(角度)
                \y*\tkz@rad@gap)% 极坐标半径
-           circle (1.3pt);%
+           circle (\tkz@rad@ticksize);%
       }%
     }%
   \endgroup
@@ -476,10 +401,10 @@
         \let\actualval\pgfplotsretval% 将数据存入\actualval
 
         \path[fill=\tkz@radl@fill,opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
-          (0:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
+          (0:\actualval*\tkz@rad@len)% 起点坐标(极坐标) 
         \foreach \v [count=\rang from 1] in {1,...,\nbrows}{% 其它点
           \pgfextra{\pgfplotstablegetelem{\v}{[index] #3}\of{\tkz@raddata}}% 取得第\v行第#3列的数据
-            -- (360/\tkz@rad@radial*\v:\pgfplotsretval*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+            -- (\tkz@rad@ang*\v:\pgfplotsretval*\tkz@rad@len)% 其它点坐标(极坐标)
         };   
       \end{scope}  
     \fi
@@ -490,9 +415,9 @@
       \let\actualval\pgfplotsretval% 将数据存入\actualval
       \pgfplotstablegetelem{\rang}{[index] #3}\of{\tkz@raddata}% 取得第\rang行第#3列的数据
       \let\nextval\pgfplotsretval% 将数据存入\nextval
-      \draw[#1,opacity=1] (360/\tkz@rad@radial*\v:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
-        -- (360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)% 终点坐标(极坐标) 
-        plot coordinates {(360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)};% 绘制节点
+      \draw[#1,opacity=1] (\tkz@rad@ang*\v:\actualval*\tkz@rad@len)% 起点坐标(极坐标) 
+        -- (\tkz@rad@ang*\rang:\nextval*\tkz@rad@len)% 终点坐标(极坐标) 
+        plot coordinates {(\tkz@rad@ang*\rang:\nextval*\tkz@rad@len)};% 绘制节点
     }   
   \endgroup
 }%
@@ -533,6 +458,9 @@
     \pgfplotstablegetcolsof{\tkz@raddata}% 获取数据列数
     \pgfmathsetmacro{\cols}{\pgfplotsretval-1}% 真实数据列数(第1列为数据维度名称列)
     \pgfplotstablevertcat{\tkz@raddata}{\tkz@raddata}% 将原数据复制追加，当行索引值超出最后一行，相当于取到第0行数据
+    
+    % 计算绘制图例需要的参数，放置于循环外，减少计算量 
+    \pgfmathsetmacro{\foff}{\tkz@rad@lattice*\tkz@rad@gap*\tkz@rad@step+\tkz@rad@sp + \tkz@rad@space - 0.3}%
 
     \pgfplotstableforeachcolumn\tkz@raddata\as\namecol{%
       \ifnum\pgfplotstablecol=0 \else
@@ -543,15 +471,15 @@
             \let\actualval\pgfplotsretval% 将数据存入\actualval
 
             \foreach \ccc/\cnn in \namecol{% 取得颜色值和列名称分别存入\cclr和\cname
-              \global\let\cclr\ccc
-              \global\let\cname\cnn
+              \global\let\clr\ccc
+              \global\let\name\cnn
             }
             
-            \path[fill=\cclr!20, opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
-              (0:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
+            \path[fill=\clr!20, opacity=\tkz@radl@opacity]% 则用指定填充色填充绘制
+              (0:\actualval*\tkz@rad@len)% 起点坐标(极坐标) 
             \foreach \v [count=\rang from 1] in {1,...,\nbrows}{% 其它点
               \pgfextra{\pgfplotstablegetelem{\v}{[index]\pgfplotstablecol}\of{\tkz@raddata}}% 取得第\v行第\pgfplotstablecol列的数据
-                -- (360/\tkz@rad@radial*\v:\pgfplotsretval*\tkz@rad@gap*\tkz@rad@step)% 其它点坐标(极坐标)
+                -- (\tkz@rad@ang*\v:\pgfplotsretval*\tkz@rad@len)% 其它点坐标(极坐标)
             };%
           \end{scope}  
         \fi
@@ -562,19 +490,20 @@
           \let\actualval\pgfplotsretval% 将数据存入\actualval
           \pgfplotstablegetelem{\rang}{[index]\pgfplotstablecol}\of{\tkz@raddata}% 取得第\rang行第\pgfplotstablecol列的数据(下一行的数据)
           \let\nextval\pgfplotsretval% 将数据存入\nextval
-          \draw[#1,color=\cclr, ball color=\cclr, opacity=1]
-            (360/\tkz@rad@radial*\v:\actualval*\tkz@rad@gap*\tkz@rad@step)% 起点坐标(极坐标) 
-            -- (360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)% 终点坐标(极坐标) 
-            plot coordinates {(360/\tkz@rad@radial*\rang:\nextval*\tkz@rad@gap*\tkz@rad@step)};% 绘制节点
+          \draw[#1,color=\clr, ball color=\clr, opacity=1]
+            (\tkz@rad@ang*\v:\actualval*\tkz@rad@len)% 起点坐标(极坐标) 
+            -- (\tkz@rad@ang*\rang:\nextval*\tkz@rad@len)% 终点坐标(极坐标) 
+            plot coordinates {(\tkz@rad@ang*\rang:\nextval*\tkz@rad@len)};% 绘制节点
         }
         
-        % 绘制图例
-        \pgfmathsetmacro{\foff}{\tkz@rad@lattice*\tkz@rad@gap*\tkz@rad@step+\tkz@rad@sp + \tkz@rad@space - 0.3}%
+        % 绘制图例        
         \pgfmathsetmacro{\fcoloff}{\pgfplotstablecol * 0.4}%
         \pgfmathsetmacro{\fncoloff}{\pgfplotstablecol * 0.2}%
-        \pgfsetstrokecolor{\cclr}%
-        \fill[shift={(\foff, -\fcoloff + \foff - 0.2)}, \cclr, opacity=\tkz@radl@opacity] (0,0) rectangle(0.5,-.1);
-        \node[shift={(\foff - 2.6, -\fncoloff + \foff - 3.1)}, anchor=west] at (-.4,-.05) {\cname};  
+        \pgfsetstrokecolor{\clr}%
+        \fill[shift={(\foff, -\fcoloff + \foff - 0.2)}, \clr, opacity=\tkz@radl@opacity] (0,0) rectangle(0.5,-.1);
+        % 放置图例标签
+        \path (0,0) -- (\foff + 0.4, -\fcoloff + \foff - 0.25) node[anchor=west] {\name};%
+        %\node[shift={(\foff - 2.6, -\fncoloff + \foff - 3.1)}, anchor=west] at (-.4,-.05) {\name};  
       \fi
     }
   \endgroup
@@ -647,3 +576,57 @@
 }
 %<--------------------------- the end --------------------------------------->
 \endinput  
+
+
+      % 放置坐标轴标签锚点计算(不建议使用的代码，但是是一种思路)
+      %\pgfmathsetmacro{\ang}{360/\tkz@rad@radial*\rang}% 浮点数角度
+      %\pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
+      % 270到360间的锚点
+      %\pgfmathparse{(\ang)<360&&(\ang)>270}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{north}
+      %\fi
+
+      % 180到270间的锚点
+      %\pgfmathparse{(\ang)<270&&(\ang)>180}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{north}
+      %\fi
+
+      % 90到180间的锚点
+      %\pgfmathparse{(\ang)<180&&(\ang)>90}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{south}
+      %\fi
+
+      % 0到90度间的锚点
+      %\pgfmathparse{(\ang)<90&&(\ang)>0}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{south}
+      %\fi
+
+      % 4个主方向的锚点
+      % 东
+      %\pgfmathparse{(\ang)==0}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{west}
+      %\fi
+      % 北
+      %\pgfmathparse{(\ang)==90}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{south}
+      %\fi
+      % 西
+      %\pgfmathparse{(\ang)==180}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{east}
+      %\fi
+      % 南
+      %\pgfmathparse{(\ang)==270}
+      %\ifnum\pgfmathresult=1
+      %  \def\anchor{north}
+      %\fi
+
+      %\show\anchor
+      
+
