@@ -97,9 +97,7 @@
   
 
   % 开始绘制网格
-  \begingroup
-    
- 
+  \begingroup%
     \foreach \x [count=\rang from 0] in {#2}{%
       \draw[/Radar/radial style]% 绘制维度坐标轴
         (0,0)% 原点
@@ -111,7 +109,7 @@
         (0,0)% 原点
          -- (\tkz@rad@ang*\rang:% 极坐标方向(角度)
              \tkz@rad@rspace)% 极坐标半径
-             node[/Radar/label style] {\x};% 标签
+             node[anchor={180 + \ang*\rang}, /Radar/label style] {\x};% 标签
     }%
     % 修正代码(用闭合路径绘制网格线，耿楠, 2019.01.01)
     \pgfmathtruncatemacro{\rd}{\tkz@rad@radial - 1}
@@ -331,7 +329,7 @@
         (0,0)% 原点
         -- (\tkz@rad@ang*\rang:% 极坐标方向(角度)
             \tkz@rad@rspace)% 极坐标半径
-        node[/Radarfile/label style] {\pgfplotsretval};% 标签
+        node[anchor={180 + \ang*\rang}, /Radarfile/label style] {\pgfplotsretval};% 标签
     }
     
     % 修正代码(闭合路径绘制网格线，耿楠, 2019.01.01)
@@ -565,68 +563,31 @@
 \coordinate[#1] (LegendBox_anchor) at (#2) ;
     \foreach \col/\item [count=\hi from 0] in {#3} {
        \node[color = \col,draw,
-             fill  = \col!50,
+             fill  = \col!20,
              minimum width  = 4 ex,
-             minimum height = 2 ex,
+             minimum height = 1 ex,
              label={[label distance=0.1cm,name=b\hi]right:\item}] at
              ([xshift=0.6cm, yshift=\hi*4 ex]LegendBox_anchor) {};
              \xdef\fitbox{\fitbox(b\hi)}
    }%
  \node [draw,fit=\fitbox(LegendBox_anchor)] {};
 }
+
+%\newcommand{\tkzLegendBox}[3][]{%
+%\xdef\fitbox{}%
+%\coordinate[#1] (LegendBox_anchor) at (#2) ;
+%    \foreach \col/\item [count=\hi from 0] in {#3} {
+%       \node[color = \col,draw,
+%             fill  = \col!20,
+%             minimum width  = 5 ex,
+%             minimum height = 2 ex,
+%             name=b\hi,
+%       ] at ([yshift=\hi*4 ex, xshift=3.5ex]LegendBox_anchor) {};
+%       \node[anchor=west,xshift=1ex] at (b\hi.east) (c\hi) {\item};
+%       \xdef\fitbox{\fitbox(c\hi)}
+%   }%
+% \node [draw,fit=\fitbox(LegendBox_anchor)] {};
+%}
+
 %<--------------------------- the end --------------------------------------->
 \endinput  
-
-
-      % 放置坐标轴标签锚点计算(不建议使用的代码，但是是一种思路)
-      %\pgfmathsetmacro{\ang}{360/\tkz@rad@radial*\rang}% 浮点数角度
-      %\pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
-      % 270到360间的锚点
-      %\pgfmathparse{(\ang)<360&&(\ang)>270}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{north}
-      %\fi
-
-      % 180到270间的锚点
-      %\pgfmathparse{(\ang)<270&&(\ang)>180}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{north}
-      %\fi
-
-      % 90到180间的锚点
-      %\pgfmathparse{(\ang)<180&&(\ang)>90}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{south}
-      %\fi
-
-      % 0到90度间的锚点
-      %\pgfmathparse{(\ang)<90&&(\ang)>0}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{south}
-      %\fi
-
-      % 4个主方向的锚点
-      % 东
-      %\pgfmathparse{(\ang)==0}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{west}
-      %\fi
-      % 北
-      %\pgfmathparse{(\ang)==90}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{south}
-      %\fi
-      % 西
-      %\pgfmathparse{(\ang)==180}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{east}
-      %\fi
-      % 南
-      %\pgfmathparse{(\ang)==270}
-      %\ifnum\pgfmathresult=1
-      %  \def\anchor{north}
-      %\fi
-
-      %\show\anchor
-      
-
