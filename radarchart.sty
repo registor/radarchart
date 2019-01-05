@@ -104,13 +104,29 @@
         (0,0)% 原点
          -- (\tkz@rad@ang*\rang: % 极坐标方向(角度)
              \tkz@rad@rsp);% 极坐标半径
+
+      % 东西两个方向的偏移量设置
+      \def\shiftx{0}
+      \pgfmathsetmacro{\dir}{\tkz@rad@ang*\rang}% 浮点数角度
+      %\pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度      
+      % 正东方向
+      \pgfmathparse{\dir==0}
+      \ifnum\pgfmathresult=1
+        \def\shiftx{-0.4cm}
+      \fi
+
+      % 正西方向
+      \pgfmathparse{\dir==180}
+      \ifnum\pgfmathresult=1
+        \def\shiftx{0.4cm}
+      \fi
       
       % 放置维度坐标轴标签
       \path% 
         (0,0)% 原点
          -- (\tkz@rad@ang*\rang:% 极坐标方向(角度)
              \tkz@rad@rspace)% 极坐标半径
-             node[anchor={180 + \ang*\rang}, /Radar/label style] {\x};% 标签
+             node[/Radar/label style, anchor={180 + \tkz@rad@ang*\rang}, xshift=\shiftx] {\x};% 标签
     }%
     % 修正代码(用闭合路径绘制网格线，耿楠, 2019.01.01)
     \pgfmathtruncatemacro{\rd}{\tkz@rad@radial - 1}
@@ -325,12 +341,28 @@
         --(\tkz@rad@ang*\rang:% 极坐标方向(角度)
            \tkz@rad@rsp);% 极坐标半径
 
+      % 东西两个方向的偏移量设置
+      \def\shiftx{0}
+      \pgfmathsetmacro{\dir}{\tkz@rad@ang*\rang}% 浮点数角度
+      %\pgfmathtruncatemacro{\ang}{360/\tkz@rad@radial*\rang}% 整数角度
+      % 正东方向
+      \pgfmathparse{\dir==0}
+      \ifnum\pgfmathresult=1
+        \def\shiftx{-0.4cm}
+      \fi
+
+      % 正西方向
+      \pgfmathparse{\dir==180}
+      \ifnum\pgfmathresult=1
+        \def\shiftx{0.4cm}
+      \fi
+
       % 放置维度坐标轴标签
       \path
         (0,0)% 原点
         -- (\tkz@rad@ang*\rang:% 极坐标方向(角度)
             \tkz@rad@rspace)% 极坐标半径
-        node[anchor={180 + \ang*\rang}, /Radarfile/label style] {\pgfplotsretval};% 标签
+        node[/Radarfile/label style, anchor={180 + \ang*\rang}, xshift=\shiftx] {\pgfplotsretval};% 标签
     }
     
     % 修正代码(闭合路径绘制网格线，耿楠, 2019.01.01)
