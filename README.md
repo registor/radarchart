@@ -3,7 +3,7 @@
 #### 项目介绍
 这是一个根据" https://github.com/tkz-sty/tkz-kiviat "中修改出来的一个基于tikz绘制多维雷达图的宏包，用于在LaTeX中绘制多维雷达图。
 
-在使用该自定义环境前，需要用：\usepackage{radarchart.sty}加载该"radarchart.sty"宏包。
+用：\usepackage{radarchart.sty}加载该"radarchart.sty"宏包。
 
 #### 软件架构
 1. 采用LaTeX撰写，需要ctex宏包支持中文、"radarchart.sty"宏包中已引入tikz宏包以支持绘图操作。
