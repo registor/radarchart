@@ -22,7 +22,7 @@
 2. 更多样例请参考"./examples"
 
 #### 基本命令
-在对原宏包定义的5条命令`\tkzRadarDiagram`、`\tkzRadarLine`、`\tkzRadarDiagramFromFile`、`\tkzRadarLineFromFile`和`\tkzRadarGrad`进行完善的基础上，添加了用于绘制雷达图图例的3条命令`\tkzRadarLegend`、`\tkzRadarLegendFromFile`和`\tkzLegendBox`，现该宏包共计8条命令，主要功能如下：
+在对原宏包定义的5条命令`\tkzRadarDiagram`、`\tkzRadarLine`、`\tkzRadarDiagramFromFile`、`\tkzRadarLineFromFile`和`\tkzRadarGrad`进行完善的基础上，添加了用于绘制雷达图图例的3条命令`\tkzRadarLegend`、`\tkzRadarLegendFromFile`、`\tkzLegendBox`和用于绘制达标标准区域的1条命令`\tkzThresholdLine`，现该宏包共计9条命令，主要功能如下：
 
 1. `\tkzRadarDiagram`命令：通过参数绘制雷达图网格。
 2. `\tkzRadarLine`命令：通过参数绘制雷达图数据线。
