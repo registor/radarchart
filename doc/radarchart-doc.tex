@@ -95,7 +95,7 @@
 \nameoffile{\nameofpack} 
 
 \defoffile{\textbf{radarchart.sty}是一个用\TIKZ 绘制多维雷达图(Radar
-  Chart)的简单宏包，需要使用 \PGF\ 2.1. 
+  Chart)的宏包，需要使用 \PGF\ 2.1. 
 }
  % A lot of references can be found here  \url{http://mathworld.wolfram.com}      
 \presentation
@@ -153,9 +153,10 @@ tkzRadarDiagram宏命令用于绘制基本雷达图(多维坐标轴及网格线)
 \midrule
 \TOline{lattice}      {10}  {每个维度轴向网格数}
 \TOline{gap}          {0.5} {网格间距，默认是$0.5$cm}
-\TOline{space}        {0.5} {坐标轴端点外延距离，默认是 $0.5$ cm} 
-\TOline{label space}  {1.0} {标签间距，默认是 $1.5$ cm}     
-\TOline{step}         {1}   {缩放步长，默认是 $1.0$ cm}
+\TOline{space}        {0.5} {坐标轴端点外延距离，默认是$0.5$cm} 
+\TOline{label space}  {1.0} {标签间距，默认是$1.5$cm}     
+\TOline{step}         {1}   {缩放步长，默认是$1.0$cm}
+\TOline{tick size}    {0.5pt} {坐标轴标记点半径，默认是$0.5$cm}  
 \TOline{radial style} {->,>=latex'}   {坐标轴箭头样式，默认是带有箭头}
 \TOline{label style}  {text width=2 cm,align=center}   {坐标轴标签样式}
 \bottomrule
@@ -414,6 +415,7 @@ tkzRadarDiagram宏命令用于绘制基本雷达图(多维坐标轴及网格线)
 \TOline{space}        {0.5} {维度坐标轴端点外延距离，默认是$0.5$cm} 
 \TOline{label space}  {1.0} {维度坐标轴标签距离，默认是$1.5$cm}     
 \TOline{step}         {1}   {数据步长，默认是$1.0$cm}
+\TOline{tick size}    {0.5pt} {坐标轴标记点半径，默认是$0.5$cm}  
 \TOline{radial style} {->,>=latex'}   {维度坐标轴箭头样式，默认是带有箭头}
 \TOline{label style}  {text width=2 cm,align=center}   {维度坐标轴标签样式}
 \bottomrule
@@ -582,6 +584,7 @@ tkzRadarDiagram宏命令用于绘制基本雷达图(多维坐标轴及网格线)
 \end{tikzpicture}
 \end{tkzexample}
 
+
 \begin{center}
  \includegraphics[width=0.8\textwidth]{radar7} 
 \end{center}
@@ -721,6 +724,47 @@ tkzRadarDiagram宏命令用于绘制基本雷达图(多维坐标轴及网格线)
  \end{tikzpicture}
 \end{tkzexample}
 
+\subsection{为雷达图绘制达标标准区域}  
+\subsubsection{绘制达标标准区域命令}
+\begin{NewMacroBox}{tkzThresholdLine}{\oarg{选项}}
+用指定的参数绘制达标标准区域，该命令无必选参数。 
+  
+\medskip
+\begin{tabular}{lll}
+可选参数 & 默认值 & 含义               \\
+\midrule
+\TOline{threshold} {0.6}  {达标区域面积占总面积的比例}  
+\TOline{fill}      {空}  {由数据点构成的多边形内部的填充色}
+\TOline{opacity}   {0.5} {填充透明度}
+\bottomrule
+\end{tabular}
+
+\emph{默认情况下，轴向取值为$0\sim 1$，两个网格之间的距离取值为
+  $0.5$cm，该值由选项\tkzname{gap}指定。}
+
+\end{NewMacroBox} 
+
+\begin{tkzexample}[]
+\begin{tikzpicture}
+   \tkzRadarDiagram[lattice=5]{A,B,C,D,E} 
+
+   \tkzThresholdLine[
+                   color      = magenta,
+                   mark       = ball,
+                   ball color = magenta,
+                   mark size  = 1pt,
+                   fill       = magenta!20,
+                   opacity=.5]  
+
+   \tkzRadarLine[thick,
+                   color      = blue,
+                   mark       = ball,
+                   ball color = blue,
+                   mark size  = 4pt,
+                   fill       = blue!20,
+                   opacity=.5](4,3,2,5,4)   
+\end{tikzpicture} 
+\end{tkzexample}
 
 \clearpage
 \newpage
